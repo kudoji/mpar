@@ -20,13 +20,19 @@ public class Ip {
     @OneToMany(mappedBy = "ip", orphanRemoval = true, cascade = CascadeType.PERSIST)
     private final Set<BannedIp> bannedIps;
 
+    @OneToMany(mappedBy = "ip", orphanRemoval = true, cascade = CascadeType.PERSIST)
+    private final Set<AccessLog> accessLogs;
+
     public Ip(){
-        this("");
+        this("127.0.0.1");
     }
 
     public Ip(String ip){
+        if (ip.isEmpty()) throw new IllegalArgumentException("ip address cannot be empty");
+
         this.ip = ip;
         this.bannedIps = new HashSet<>();
+        this.accessLogs = new HashSet<>();
     }
 
     public int getId(){
@@ -39,5 +45,9 @@ public class Ip {
 
     public Set<BannedIp> getBannedIps(){
         return this.bannedIps;
+    }
+
+    public Set<AccessLog> getAccessLogs(){
+        return this.accessLogs;
     }
 }

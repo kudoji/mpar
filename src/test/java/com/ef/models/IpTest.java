@@ -8,6 +8,7 @@ import org.junit.*;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -52,6 +53,7 @@ public class IpTest {
         ip = em.find(Ip.class, ip.getId());
         assertEquals(ipAddress, ip.getIp());
         assertEquals(0, ip.getBannedIps().size());
+        assertEquals(0, ip.getAccessLogs().size());
 
         ip = em.find(Ip.class, 1);
         assertEquals(ipAddress, ip.getIp());
@@ -77,5 +79,37 @@ public class IpTest {
 
         List<BannedIp> bannedIps = em.createQuery("from BannedIp", BannedIp.class).getResultList();
         assertFalse(bannedIps.isEmpty());
+    }
+
+    @Test
+    public void testAccessLogPersistence(){
+        final String ipAddress = "127.0.0.2";
+        final String request = "request";
+        final String status = "OK";
+        final String userAgent = "Safari";
+
+        Ip ip = new Ip(ipAddress);
+
+        AccessLog accessLog = new AccessLog(ip);
+        accessLog.setDate(LocalDate.now());
+        accessLog.setRequest(request);
+        accessLog.setStatus(status);
+        accessLog.setUserAgent(userAgent);
+
+        ip.getAccessLogs().add(accessLog);
+
+        em.persist(ip);
+
+        List<AccessLog> accessLogs = em.createQuery(
+                "from AccessLog",
+                AccessLog.class
+        ).getResultList();
+
+        assertFalse(accessLogs.isEmpty());
+
+        accessLog = accessLogs.get(0);
+        assertEquals(request, accessLog.getRequest());
+        assertEquals(status, accessLog.getStatus());
+        assertEquals(userAgent, accessLog.getUserAgent());
     }
 }

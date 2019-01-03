@@ -9,6 +9,7 @@
 
         <class>com.ef.models.Ip</class>
         <class>com.ef.models.BannedIp</class>
+        <class>com.ef.models.AccessLog</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
 
         <properties>
