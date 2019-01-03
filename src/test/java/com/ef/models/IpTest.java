@@ -95,7 +95,7 @@ public class IpTest {
     public void testAccessLogPersistence(){
         final String ipAddress = "127.0.0.2";
         final String request = "request";
-        final String status = "OK";
+        final String status = "200";
         final String userAgent = "Safari";
 
         Ip ip = new Ip(ipAddress);
