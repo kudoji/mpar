@@ -3,10 +3,13 @@
  */
 package com.ef.models;
 
+import lombok.Data;
+
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
+@Data //lombok
 @Entity
 @Table(name = "ips")
 public class Ip {
@@ -33,21 +36,5 @@ public class Ip {
         this.ip = ip;
         this.bannedIps = new HashSet<>();
         this.accessLogs = new HashSet<>();
-    }
-
-    public int getId(){
-        return this.id;
-    }
-
-    public String getIp(){
-        return this.ip;
-    }
-
-    public Set<BannedIp> getBannedIps(){
-        return this.bannedIps;
-    }
-
-    public Set<AccessLog> getAccessLogs(){
-        return this.accessLogs;
     }
 }
