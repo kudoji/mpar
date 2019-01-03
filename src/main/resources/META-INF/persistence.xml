@@ -8,13 +8,14 @@
         <description>Used to test mpar</description>
 
         <class>com.ef.models.Ip</class>
+        <class>com.ef.models.BannedIp</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
 
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5Dialect" />
 
             <property name="javax.persistence.jdbc.driver" value="com.mysql.jdbc.Driver" />
-            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://127.0.0.1/accesslog-jpa" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://127.0.0.1/accesslog-jpa?useSSL=false" />
             <property name="javax.persistence.jdbc.user" value="root" />
             <property name="javax.persistence.jdbc.password" value="g^%%fy!&amp;@n" />
 
