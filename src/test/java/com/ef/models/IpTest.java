@@ -8,19 +8,29 @@ import org.junit.*;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class IpTest {
     private static EntityManagerFactory emf;
+    private static Validator validator;
+
     private EntityManager em;
 
     @BeforeClass
     public static void initialization(){
         emf = Persistence.createEntityManagerFactory("mpar-test");
+
+        ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
+        validator = validatorFactory.getValidator();
     }
 
     @AfterClass
@@ -111,5 +121,23 @@ public class IpTest {
         assertEquals(request, accessLog.getRequest());
         assertEquals(status, accessLog.getStatus());
         assertEquals(userAgent, accessLog.getUserAgent());
+    }
+
+    @Test
+    public void testIpAddressValidation(){
+        final String ipAddressInvalid = "localhost";
+        final String ipAddressValid = "10.3.0.234";
+
+        Ip ip = new Ip(ipAddressInvalid);
+
+        Set<ConstraintViolation<Ip>> constraintViolations = validator.validateProperty(ip, "ip");
+        assertEquals(1, constraintViolations.size());
+        assertEquals("Invalid ip address", constraintViolations.iterator().next().getMessage());
+
+
+        ip = new Ip(ipAddressValid);
+
+        constraintViolations = validator.validateProperty(ip, "ip");
+        assertEquals(0, constraintViolations.size());
     }
 }

@@ -3,10 +3,14 @@
  */
 package com.ef.models;
 
+import lombok.Data;
+
 import javax.persistence.*;
+import javax.validation.constraints.Pattern;
 import java.util.HashSet;
 import java.util.Set;
 
+//@Data //lombok causes StackOverflow...
 @Entity
 @Table(name = "ips")
 public class Ip {
@@ -14,6 +18,7 @@ public class Ip {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
 
+    @Pattern(regexp = "^(\\d{1,3}\\.){3}\\d{1,3}$", message = "Invalid ip address")
     @Column(nullable = false, unique = true)
     private final String ip;
 
