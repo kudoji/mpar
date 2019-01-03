@@ -32,6 +32,12 @@ public class BannedIpTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testConstructorWithNullReason(){
+        Ip ip = new Ip();
+        BannedIp bannedIp = new BannedIp(ip, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testConstructorWithIllegalReason(){
         Ip ip = new Ip();
         BannedIp bannedIp = new BannedIp(ip, "");
