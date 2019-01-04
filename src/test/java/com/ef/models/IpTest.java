@@ -12,7 +12,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -77,7 +77,7 @@ public class IpTest {
         Ip ip = new Ip(ipAddress);
 
         BannedIp bannedIp = new BannedIp(ip, reason);
-        ip.getBannedIps().add(bannedIp);
+//        ip.getBannedIps().add(bannedIp);
 
         em.persist(ip);
 //        em.persist(bannedIp);
@@ -101,12 +101,10 @@ public class IpTest {
         Ip ip = new Ip(ipAddress);
 
         AccessLog accessLog = new AccessLog(ip);
-        accessLog.setDate(LocalDate.now());
+        accessLog.setDate(LocalDateTime.now());
         accessLog.setRequest(request);
         accessLog.setStatus(status);
         accessLog.setUserAgent(userAgent);
-
-        ip.getAccessLogs().add(accessLog);
 
         em.persist(ip);
 

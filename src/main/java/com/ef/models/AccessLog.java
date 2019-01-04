@@ -28,7 +28,7 @@ public class AccessLog {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
-    private Ip ip;
+    private final Ip ip;
 
     @NotNull(message = "Request is invalid")
     @Size(min = 5, max = 75, message = "Request is invalid")
@@ -48,6 +48,8 @@ public class AccessLog {
         if (ip == null) throw new IllegalArgumentException("Ip cannot be null");
 
         this.ip = ip;
+
+        this.ip.getAccessLogs().add(this);
     }
 
     /**
