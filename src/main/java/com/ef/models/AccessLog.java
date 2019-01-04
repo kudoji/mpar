@@ -8,7 +8,10 @@ import lombok.Data;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 @Data //lombok
 @Entity
@@ -20,7 +23,7 @@ public class AccessLog {
 
     @NotNull(message = "Date is invalid")
     @Column(nullable = false)
-    private LocalDate date;
+    private LocalDateTime date;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,5 +48,21 @@ public class AccessLog {
         if (ip == null) throw new IllegalArgumentException("Ip cannot be null");
 
         this.ip = ip;
+    }
+
+    /**
+     *
+     * @param date
+     * @param pattern
+     *
+     * @throws DateTimeParseException if the text cannot be parsed
+     */
+    public void setDate(String date, String pattern) {
+        if (date == null || date.isEmpty()) throw new IllegalArgumentException(
+                "Date parameter cannot be null or empty");
+        if (pattern == null || pattern.isEmpty()) throw new IllegalArgumentException(
+                "Pattern parameter cannot be null or empty");
+
+        this.date = LocalDateTime.parse(date, DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH));
     }
 }
