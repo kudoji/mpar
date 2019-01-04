@@ -13,11 +13,14 @@ import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class IpTest {
     private static EntityManagerFactory emf;
@@ -137,5 +140,36 @@ public class IpTest {
 
         constraintViolations = validator.validateProperty(ip, "ip");
         assertEquals(0, constraintViolations.size());
+    }
+
+    @Test
+    public void testEqualsAndHashCode(){
+        Ip ip0 = new Ip("127.0.0.1");
+        Ip ip1 = new Ip("127.0.0.1");
+        Ip ip2 = new Ip("127.0.0.1");
+        Ip ip3 = new Ip("127.0.0.2");
+
+        assertFalse(ip0.equals(null));
+        assertFalse(ip0.equals(ip3));
+
+        assertTrue(ip0.equals(ip0));
+        assertTrue(ip0.equals(ip1));
+        assertTrue(ip1.equals(ip0));
+        assertTrue(ip1.equals(ip2));
+        assertTrue(ip0.equals(ip2));
+
+
+        Map<Ip, Integer> ipFreq = new HashMap<>();
+        ipFreq.putIfAbsent(ip0, 1);
+
+        assertTrue(ipFreq.containsKey(ip1));
+
+        ipFreq.putIfAbsent(ip1, 2);
+        assertEquals(1, ipFreq.size());
+
+        ipFreq.computeIfPresent(ip1, (ip, integer) -> ++integer);
+
+        assertEquals(1, ipFreq.size());
+        assertEquals(2, ipFreq.get(ip0).longValue());
     }
 }
