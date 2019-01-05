@@ -3,13 +3,16 @@ package com.ef.utils;
 import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 public class CommandLine {
     private String[] args;
     private String accessLog;
     private DurationValues duration;
-    private Date startDate;
+    private LocalDateTime startDate;
     private int threshold;
     private HashMap<String, String> params;
     private static final String CLI_ACCESSLOG = "accesslog";
@@ -35,7 +38,7 @@ public class CommandLine {
         return this.accessLog;
     }
 
-    public Date getStartDate(){
+    public LocalDateTime getStartDate(){
         return this.startDate;
     }
 
@@ -79,6 +82,7 @@ public class CommandLine {
             }
         }
 
+        //  TODO: must throw exception
         if (!parseAccessLog()){
             return false;
         }
@@ -120,11 +124,17 @@ public class CommandLine {
             System.err.println("\tstartDate parameter is not set");
             return false;
         }
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd.HH:mm:ss", Locale.ENGLISH);
-        Date date = new Date();
+
+        LocalDateTime date = LocalDateTime.now();
+
         try{
-            date = df.parse(startDate);
-        }catch (Exception e){
+            date = LocalDateTime.parse(
+                    startDate,
+                    DateTimeFormatter.ofPattern(
+                            "yyyy-MM-dd.HH:mm:ss",
+                            Locale.ENGLISH
+                    ));
+        }catch (DateTimeParseException e){
             isDateCorrect = false;
 //            e.printStackTrace();
         }
