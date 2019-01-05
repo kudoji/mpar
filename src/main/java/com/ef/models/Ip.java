@@ -33,7 +33,7 @@ public class Ip {
     }
 
     public Ip(String ip){
-        if (ip.isEmpty()) throw new IllegalArgumentException("ip address cannot be empty");
+        if (ip == null || ip.isEmpty()) throw new IllegalArgumentException("ip address cannot be empty");
 
         this.ip = ip;
         this.bannedIps = new HashSet<>();
@@ -54,5 +54,20 @@ public class Ip {
 
     public Set<AccessLog> getAccessLogs(){
         return this.accessLogs;
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if (!(obj instanceof Ip)) return false;
+
+        Ip ip = (Ip)obj;
+
+        //  BOTH ip and ip MUST be the same at the same time
+        return (this.id == ip.getId()) & (this.ip == ip.getIp());
+    }
+
+    @Override
+    public int hashCode(){
+        return this.id + 7 * this.ip.hashCode();
     }
 }

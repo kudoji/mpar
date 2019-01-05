@@ -10,7 +10,8 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -55,7 +56,7 @@ public class AccessLogTest {
         accessLog.setDate(null);
         assertError(accessLog, "date", "Date is invalid");
 
-        accessLog.setDate(LocalDate.now());
+        accessLog.setDate(LocalDateTime.now());
         assertNoError(accessLog, "date");
     }
 
@@ -129,5 +130,77 @@ public class AccessLogTest {
 
         accessLog.setUserAgent(userAgentValid3);
         assertNoError(accessLog, "userAgent");
+    }
+
+    @Test
+    public void testSetDateMethodValid(){
+        final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+        final String dateString = "2017-12-21 00:00:11.763";
+        final LocalDateTime date = LocalDateTime.of(
+                2017,
+                12,
+                21,
+                0,
+                0,
+                11,
+                763 * 1000000 // convert to milliseconds which SSS is
+        );
+
+        Ip ip = new Ip();
+        AccessLog accessLog = new AccessLog(ip);
+
+        accessLog.setDate(dateString, pattern);
+        assertEquals(date, accessLog.getDate());
+    }
+
+    @Test(expected = DateTimeParseException.class)
+    public void testSetDateMethodInvalidDate(){
+        final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+        final String dateString = "2017-22-21 00:00:11.763";
+
+        Ip ip = new Ip();
+        AccessLog accessLog = new AccessLog(ip);
+
+        accessLog.setDate(dateString, pattern);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetDateMethodNullDate(){
+        final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+
+        Ip ip = new Ip();
+        AccessLog accessLog = new AccessLog(ip);
+
+        accessLog.setDate(null, pattern);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetDateMethodEmptyDate(){
+        final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+
+        Ip ip = new Ip();
+        AccessLog accessLog = new AccessLog(ip);
+
+        accessLog.setDate("", pattern);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetDateMethodNullPattern(){
+        final String dateString = "2017-12-21 00:00:11.763";
+
+        Ip ip = new Ip();
+        AccessLog accessLog = new AccessLog(ip);
+
+        accessLog.setDate(dateString, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetDateMethodEmptyPattern(){
+        final String dateString = "2017-12-21 00:00:11.763";
+
+        Ip ip = new Ip();
+        AccessLog accessLog = new AccessLog(ip);
+
+        accessLog.setDate(dateString, "");
     }
 }

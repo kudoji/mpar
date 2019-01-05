@@ -30,6 +30,8 @@ public class BannedIp {
 
         this.ip = ip;
         this.reason = reason;
+
+        this.ip.getBannedIps().add(this);
     }
 
     public String getReason(){
