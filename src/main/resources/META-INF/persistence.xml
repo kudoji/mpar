@@ -1,0 +1,29 @@
+<persistence
+        version="2.1"
+        xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+                            http://xmlns.jcp.org/xml/ns/persistence_2_1.xsd">
+    <persistence-unit name="mpar-test">
+        <description>Used to test mpar</description>
+
+        <class>com.ef.models.Ip</class>
+        <class>com.ef.models.BannedIp</class>
+        <class>com.ef.models.AccessLog</class>
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
+        <properties>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5Dialect" />
+
+            <property name="javax.persistence.jdbc.driver" value="com.mysql.jdbc.Driver" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://127.0.0.1/accesslog-jpa?useSSL=false" />
+            <property name="javax.persistence.jdbc.user" value="root" />
+            <property name="javax.persistence.jdbc.password" value="g^%%fy!&amp;@n" />
+
+            <property name="javax.persistence.schema-generation.database.action"
+                      value="drop-and-create" />
+            <property name="hibernate.format_sql" value="true" />
+            <property name="hibernate.use_sql_comments" value="true" />
+        </properties>
+    </persistence-unit>
+</persistence>
