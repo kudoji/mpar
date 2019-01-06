@@ -17,7 +17,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -142,13 +141,13 @@ public class AccessLogParser {
      * @return List of suspicious IPs
      */
     @SuppressWarnings("unchecked")
-    public Set<String> banIps(LocalDateTime startDate, CommandLine.DurationValues duration, int threshold){
+    public Set<String> banIps(LocalDateTime startDate, CommandLineWrapper.DurationValues duration, int threshold){
         if (startDate == null) throw new IllegalArgumentException("Start date parameter is invalid");
 
         ChronoUnit chronoUnit;
-        if (duration == CommandLine.DurationValues.hourly){
+        if (duration == CommandLineWrapper.DurationValues.hourly){
             chronoUnit = ChronoUnit.HOURS;
-        }else if (duration == CommandLine.DurationValues.daily){
+        }else if (duration == CommandLineWrapper.DurationValues.daily){
             chronoUnit = ChronoUnit.DAYS;
         }else{
             //  incorrect duration
