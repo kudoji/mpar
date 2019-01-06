@@ -19,7 +19,11 @@ public class Parser {
             System.exit(1);
         }
 
-        EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("mpar-test");
+        System.out.println("parsing access log file, please wait...");
+
+        EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory(
+                "mpar-production"
+        );
         EntityManager entityManager = entityManagerFactory.createEntityManager();
 
         AccessLogParser alp = new AccessLogParser(cli.getAccessLog(), entityManager);
@@ -34,8 +38,10 @@ public class Parser {
                 }
             }
         }
-//        System.out.println(alp.getData().size());
+
         entityManager.close();
         entityManagerFactory.close();
+
+        System.out.println("done!");
     }
 }
