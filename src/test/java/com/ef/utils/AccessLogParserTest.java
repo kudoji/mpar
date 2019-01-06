@@ -4,7 +4,6 @@
 package com.ef.utils;
 
 import com.ef.models.AccessLog;
-import com.ef.models.BannedIp;
 import com.ef.models.Ip;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -56,7 +55,7 @@ public class AccessLogParserTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testBanIpsWithNullStartDate(){
-        accessLogParser.banIps(null, CommandLine.DurationValues.daily, 10);
+        accessLogParser.banIps(null, CommandLineWrapper.DurationValues.daily, 10);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -66,7 +65,7 @@ public class AccessLogParserTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testBanIpsWithInvalidThreshold(){
-        accessLogParser.banIps(LocalDateTime.now(), CommandLine.DurationValues.daily, 0);
+        accessLogParser.banIps(LocalDateTime.now(), CommandLineWrapper.DurationValues.daily, 0);
     }
 
     @Test
@@ -82,7 +81,7 @@ public class AccessLogParserTest {
 
         assertTrue(accessLogParser.parse());
 
-        Set<String> ipSet = accessLogParser.banIps(startDate, CommandLine.DurationValues.hourly, 2);
+        Set<String> ipSet = accessLogParser.banIps(startDate, CommandLineWrapper.DurationValues.hourly, 2);
         assertEquals(2, ipSet.size());
     }
 }
