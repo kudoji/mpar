@@ -1,18 +1,19 @@
 package com.ef.utils;
 
 import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.logging.Logger;
 
 import static java.lang.String.format;
 
 public class CommandLineWrapper {
-    private final Logger log = Logger.getLogger(CommandLineParser.class.getName());
+    private final Logger log = LoggerFactory.getLogger(CommandLineParser.class);
 
     private final char valueSeparator = '=';
 
@@ -138,7 +139,7 @@ public class CommandLineWrapper {
 
         if (!al.exists()){
             String message = "the access log file does not exist";
-            log.severe(message);
+            log.error(message);
 
             throw new IllegalArgumentException(message);
         }
@@ -163,7 +164,7 @@ public class CommandLineWrapper {
                     ));
         }catch (DateTimeParseException e){
             String message = format("incorrect date, supports the following format only: '%s'", CLI_STARTDATE_FORMAT);
-            log.severe(message);
+            log.error(message);
             throw new IllegalArgumentException(message);
         }
 
@@ -180,7 +181,7 @@ public class CommandLineWrapper {
                 !duration.equals(DurationValues.hourly.name())){
 
             String message = "duration parameter is incorrect; two parameters acceptable: 'hourly' and 'daily'";
-            log.severe(message);
+            log.error(message);
             throw new IllegalArgumentException(message);
         }
 
@@ -199,13 +200,13 @@ public class CommandLineWrapper {
             result = Integer.parseInt(threshold) > 0;
         }catch (NumberFormatException e){
             message = "threshold parameter is invalid";
-            log.severe(message);
+            log.error(message);
             throw new IllegalArgumentException(message);
         }
 
         if (!result){
             message = "threshold parameter should be more than zero";
-            log.severe(message);
+            log.error(message);
             throw new IllegalArgumentException(message);
         }
 

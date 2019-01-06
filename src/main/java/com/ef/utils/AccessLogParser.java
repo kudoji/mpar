@@ -3,6 +3,8 @@ package com.ef.utils;
 import com.ef.models.AccessLog;
 import com.ef.models.BannedIp;
 import com.ef.models.Ip;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
 import javax.validation.ConstraintViolation;
@@ -15,10 +17,6 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static java.lang.String.format;
 
 public class AccessLogParser {
     private final String fileName;
@@ -29,15 +27,13 @@ public class AccessLogParser {
 
     private EntityManager entityManager;
 
-    private final Logger log = Logger.getLogger(AccessLog.class.getName());
+    private final Logger log = LoggerFactory.getLogger(AccessLogParser.class);
 
     public AccessLogParser(String fileName, EntityManager entityManager){
         if (fileName == null || fileName.isEmpty())
             throw new IllegalArgumentException("File name cannot be empty");
 
         this.fileName = fileName;
-
-        this.log.setLevel(Level.INFO);
 
         this.entityManager = entityManager;
     }
@@ -63,16 +59,16 @@ public class AccessLogParser {
             entityManager.createQuery("delete Ip").executeUpdate();
             entityManager.createQuery("delete BannedIp").executeUpdate();
 
-            log.info("Lines processed: " + br.lines().map(parseLine).count());
+            log.info("Lines processed: {}", br.lines().map(parseLine).count());
 
             br.close();
             is.close();
         }catch(FileNotFoundException e){
             isParsed = false;
-            log.severe("accesslog file not found (" + this.fileName + ")");
+            log.error("accesslog file not found ({})", this.fileName);
         }catch (IOException e){
             isParsed = false;
-            log.severe("cannot open accesslog file (" + this.fileName + ")");
+            log.error("cannot open access log file ({})", this.fileName);
         }
 
         if (isParsed){
@@ -95,7 +91,7 @@ public class AccessLogParser {
         String[] params = line.split(this.separator);
 
         if (params.length != 5){
-            log.severe(format("line '%s' in file is invalid", line));
+            log.warn("line '{}' in file is invalid", line);
             return null;
         }
 
@@ -107,11 +103,11 @@ public class AccessLogParser {
         try{
             al.setDate(params[0], "yyyy-MM-dd HH:mm:ss.SSS");
         }catch (DateTimeParseException e){
-            log.severe(format("line '%s' in file has invalid date '%s'", line, params[0]));
+            log.warn("line '{}' in file has invalid date '{}'", line, params[0]);
 
             return null;
         }catch (IllegalArgumentException e){
-            log.severe(format("line '%s' in file has empty date '%s'", line, params[0]));
+            log.warn("line '{}' in file has empty date '{}'", line, params[0]);
 
             return null;
         }
@@ -125,7 +121,7 @@ public class AccessLogParser {
 
         Set<ConstraintViolation<AccessLog>> constraintViolations = validator.validate(al);
         if (constraintViolations.size() > 0){
-            log.severe(format("line '%s' has invalid data", line));
+            log.warn("line '{}' has invalid data", line);
             return null;
         }
 
