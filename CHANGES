@@ -1,0 +1,15 @@
+[0.1.3]
+
+ * write tests (feature #62)
+ * migrate to hibernate (feature #63)
+ * cli class (feature #74)
+ * implement jpa's models (feature #75)
+ * implement hibernate's validation (feature #76)
+ * integrate jpa's models to the code (feature #77)
+ * use Map.computeIfAbsent() (feature #78)
+ * parse methods in CommandLine.java must throw Exception (feature #79)
+ * parse() method in AccessLogParser.java must throw Exception (feature #80)
+ * entity constructor adds themselves to parent entity (feature #81)
+ * migrate from Date to LocalDateTime (feature #82)
+ * filter HashMap with stream API (feature #83)
+ * add a readme file (feature #84)
