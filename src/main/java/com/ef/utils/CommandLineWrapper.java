@@ -7,8 +7,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.logging.Logger;
 
-public class CommandLine {
+import static java.lang.String.format;
+
+public class CommandLineWrapper {
+    private final Logger log = Logger.getLogger(CommandLineParser.class.getName());
+
     private final char valueSeparator = '=';
 
     private static final String CLI_ACCESSLOG_SHORT = "l";
@@ -16,6 +21,7 @@ public class CommandLine {
 
     private static final String CLI_STARTDATE_SHORT = "s";
     private static final String CLI_STARTDATE_LONG = "startDate";
+    public static final String CLI_STARTDATE_FORMAT = "yyyy-MM-dd.HH:mm:ss";
 
     private static final String CLI_DURATION_SHORT = "d";
     private static final String CLI_DURATION_LONG = "duration";
@@ -26,7 +32,6 @@ public class CommandLine {
     private final String[] args;
     private final Options options;
 
-
     private String accessLog;
     private DurationValues duration;
     private LocalDateTime startDate;
@@ -36,7 +41,7 @@ public class CommandLine {
         daily
     }
 
-    public CommandLine(String[] args){
+    public CommandLineWrapper(String[] args){
         this.options = new Options();
 
         Option accesslog = new Option(
@@ -76,7 +81,7 @@ public class CommandLine {
                 "IP with more than specified amount hits will be banned"
         );
         threshold.setValueSeparator(valueSeparator);
-        duration.setRequired(true);
+        threshold.setRequired(true);
         options.addOption(threshold);
 
         this.args = args;
@@ -101,148 +106,89 @@ public class CommandLine {
     /**
      * Extracts all necessary commandline params
      *
-     * @return
+     * @throws ParseException, IllegalArgumentException
      */
     public void parseCommands() throws ParseException {
         CommandLineParser commandLineParser = new DefaultParser();
         HelpFormatter helpFormatter = new HelpFormatter();
         CommandLine commandLine;
 
-        commandLine = commandLineParser.parse(this.options, this.args);
+        try{
+            commandLine = commandLineParser.parse(this.options, this.args);
+        }catch (ParseException e){
+            System.err.println(e.getMessage());
+            helpFormatter.printHelp("mpar", this.options);
 
-
-        if (this.args.length != 4){
-            System.out.println("4 parameters required.");
-            System.out.println();
-            System.out.println("usage: ");
-            System.out.println("\t--" + CLI_ACCESSLOG + "=/path/to/file");
-            System.out.println("\t--" + CLI_STARTDATE + "=2017-01-01.13:00:00");
-            System.out.println("\t--" + CLI_DURATION + "=hourly");
-            System.out.println("\t--" + CLI_THRESHOLD + "=100");
-
-            return false;
+            throw new ParseException(e.getMessage());
         }
 
-        for (String arg: args){
-            Iterator<Map.Entry<String, String>> iterator = this.params.entrySet().iterator();
-            while (iterator.hasNext()){
-                Map.Entry<String, String> pair = (Map.Entry<String, String>)iterator.next();
-
-                String searchParam = "--" + pair.getKey() + "=";
-                if (arg.startsWith(searchParam)){
-                    pair.setValue(arg.substring(searchParam.length()));
-
-                    break;
-                }
-            }
-        }
-
-        //  TODO: must throw exception
-        if (!parseAccessLog()){
-            return false;
-        }
-
-        if (!parseStartDate()){
-            return false;
-        }
-
-        if (!parseDuration()){
-            return false;
-        }
-
-        if (!parseThreshold()){
-            return false;
-        }
-
-        return true;
+        this.accessLog = parseAccessLog(commandLine.getOptionValue(CLI_ACCESSLOG_LONG));
+        this.startDate = parseStartDate(commandLine.getOptionValue(CLI_STARTDATE_LONG));
+        this.duration = parseDuration(commandLine.getOptionValue(CLI_DURATION_LONG));
+        this.threshold = parseThreshold(commandLine.getOptionValue(CLI_THRESHOLD_LONG));
     }
 
-    private boolean parseAccessLog(){
-        String acclessLog = this.params.get(CLI_ACCESSLOG);
-
-        File al = new File(acclessLog);
+    private String parseAccessLog(String accessLog) {
+        File al = new File(accessLog);
 
         if (!al.exists()){
-            System.err.println("\taccesslog file does not exist");
-            return false;
+            String message = "the access log file does not exist";
+            log.severe(message);
+
+            throw new IllegalArgumentException(message);
         }
 
-        this.accessLog = acclessLog;
-
-        return true;
+        return accessLog;
     }
 
-    private boolean parseStartDate(){
-        boolean isDateCorrect = true;
-        String startDate = this.params.get(CLI_STARTDATE);
-        if (startDate.isEmpty()){
-            System.err.println("\tstartDate parameter is not set");
-            return false;
-        }
-
+    private LocalDateTime parseStartDate(String startDate) {
         LocalDateTime date = LocalDateTime.now();
 
         try{
             date = LocalDateTime.parse(
                     startDate,
                     DateTimeFormatter.ofPattern(
-                            "yyyy-MM-dd.HH:mm:ss",
+                            CLI_STARTDATE_FORMAT,
                             Locale.ENGLISH
                     ));
         }catch (DateTimeParseException e){
-            isDateCorrect = false;
-//            e.printStackTrace();
+            String message = format("incorrect date, supports the following format only: '%s'", CLI_STARTDATE_FORMAT);
+            log.severe(message);
+            throw new IllegalArgumentException(message);
         }
 
-        if (!isDateCorrect){
-            System.err.println("\tincorrect date, supports the following format only: 'yyyy-MM-dd.HH:mm:ss'");
-            return false;
-        }
-
-        this.startDate = date;
-
-        return isDateCorrect;
+        return date;
     }
 
-    private boolean parseDuration(){
-        String duration = this.params.get(CLI_DURATION);
-        if (duration.isEmpty()){
-            System.err.println("\tduration parameter is not set");
-            return false;
-        }
-
+    private DurationValues parseDuration(String duration) {
         if (!duration.equals(DurationValues.daily.name()) &&
                 !duration.equals(DurationValues.hourly.name())){
-            System.err.println("\tduration parameter is incorrect; two parameters acceptable: 'hourly', 'daily'");
 
-            return false;
+            String message = "duration parameter is incorrect; two parameters acceptable: 'hourly' and 'daily'";
+            log.severe(message);
+            throw new IllegalArgumentException(message);
         }
 
-        if (duration.equals(DurationValues.daily.name())){
-            this.duration = DurationValues.daily;
-        }else{
-            this.duration = DurationValues.hourly;
-        }
-
-        return true;
+        return DurationValues.valueOf(duration);
     }
 
-    private boolean parseThreshold(){
-        String threshold = this.params.get(CLI_THRESHOLD);
-        if (threshold.isEmpty()){
-            System.err.println("\tthreshold parameter is not set");
-            return false;
+    private int parseThreshold(String threshold) {
+        boolean result = false;
+        String message = "";
+        try{
+            result = Integer.parseInt(threshold) > 0;
+        }catch (NumberFormatException e){
+            message = "threshold parameter is invalid";
+            log.severe(message);
+            throw new IllegalArgumentException(message);
         }
 
-        boolean result = Integer.parseInt(threshold) > 0;
         if (!result){
-            System.err.println("\tthreshold parameter should be more than zero");
-
-            return false;
+            message = "threshold parameter should be more than zero";
+            log.severe(message);
+            throw new IllegalArgumentException(message);
         }
 
-        this.threshold = Integer.parseInt(threshold);
-
-        return result;
+        return Integer.parseInt(threshold);
     }
 }

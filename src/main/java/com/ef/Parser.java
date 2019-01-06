@@ -1,8 +1,7 @@
 package com.ef;
 
-import com.ef.models.Ip;
 import com.ef.utils.AccessLogParser;
-import com.ef.utils.CommandLine;
+import com.ef.utils.CommandLineWrapper;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -11,8 +10,12 @@ import java.util.Set;
 
 public class Parser {
     public static void main(String[] args){
-        CommandLine cli = new CommandLine(args);
-        if (!cli.parseCommands()){
+        CommandLineWrapper cli = new CommandLineWrapper(args);
+        try {
+            cli.parseCommands();
+        }catch (Exception e){
+            System.out.print(e.getMessage());
+
             System.exit(1);
         }
 
