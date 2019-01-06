@@ -1,34 +1,41 @@
 package com.ef.utils;
 
-import com.ef.Parser;
+import com.ef.models.AccessLog;
+import com.ef.models.BannedIp;
+import com.ef.models.Ip;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import javax.persistence.EntityManager;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class AccessLogParser {
-    private String fileName;
-    private String separator;
-    private List<AccessLog> data;
-    private DB mysql;
-    //  keeps flag that connection to MySQL is established or not
-    private boolean isConnected;
+    private final String fileName;
+    private final String separator = "\\|";
 
-    public AccessLogParser(String fileName){
+    //  keep cache of all Ip
+    private final Map<String, Ip> cacheIp = new HashMap<>();
+
+    private EntityManager entityManager;
+
+    private final Logger log = LoggerFactory.getLogger(AccessLogParser.class);
+
+    public AccessLogParser(String fileName, EntityManager entityManager){
+        if (fileName == null || fileName.isEmpty())
+            throw new IllegalArgumentException("File name cannot be empty");
+
         this.fileName = fileName;
-        this.separator = "\\|";
 
-        this.mysql = new DB(Parser.MYSQL_URL, Parser.MYSQL_LOGIN, Parser.MYSQL_PASSWORD, Parser.MYSQL_DATABASE);
-        this.mysql.setDebugMode(true);
-        this.isConnected = this.mysql.connect();
-    }
-
-    public List<AccessLog> getData(){
-        return this.data;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -36,27 +43,38 @@ public class AccessLogParser {
      *
      * @return true if file successfully parsed, false otherwise
      */
-    public boolean parse(){
+    public boolean parse() {
+        entityManager.getTransaction().begin();
+
+        cacheIp.clear();
+
         boolean isParsed = true;
-        try{
+        try {
             File f = new File(this.fileName);
             FileInputStream is = new FileInputStream(f);
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
-            if (this.isConnected){
-                //  truncate table before adding to it
-                this.mysql.execSQL("truncate table `" + Parser.MYSQL_DATABASE + "`.`" + Parser.MYSQL_ACCESSLOG_TABLE + "`;");
-            }
+            //  truncate tables before adding data to it because parse() can be called multiple times
+            entityManager.createQuery("delete AccessLog").executeUpdate();
+            entityManager.createQuery("delete Ip").executeUpdate();
+            entityManager.createQuery("delete BannedIp").executeUpdate();
 
-            this.data = br.lines().map(parseLine).collect(Collectors.toList());
+            log.info("Lines processed: {}", br.lines().map(parseLine).count());
 
             br.close();
             is.close();
-        }catch (Exception e){
-            //  something went wrong...
+        }catch(FileNotFoundException e){
             isParsed = false;
-            System.err.println("\taccesslog file is incorrect");
-//            e.printStackTrace();
+            log.error("accesslog file not found ({})", this.fileName);
+        }catch (IOException e){
+            isParsed = false;
+            log.error("cannot open access log file ({})", this.fileName);
+        }
+
+        if (isParsed){
+            entityManager.getTransaction().commit();
+        }else{
+            entityManager.getTransaction().rollback();
         }
 
         return isParsed;
@@ -66,40 +84,48 @@ public class AccessLogParser {
      * Taken from here
      * @url https://dzone.com/articles/how-to-read-a-big-csv-file-with-java-8-and-stream
      *
-     * TODO make sure that file format is expected (5 columns)
-     * TODO check that loaded data is valid (e.g. date is correct, ip is in following format)
+     * with modifications
+     *
      */
     private Function<String, AccessLog> parseLine = (line) -> {
         String[] params = line.split(this.separator);
 
-        AccessLog al = new AccessLog();
+        if (params.length != 5){
+            log.warn("line '{}' in file is invalid", line);
+            return null;
+        }
 
-        al.setDate(params[0]);
-        al.setIp(params[1]);
+        Ip ip;
+        ip = cacheIp.computeIfAbsent(params[1], k -> new Ip(params[1]));
+
+        AccessLog al = new AccessLog(ip);
+
+        try{
+            al.setDate(params[0], "yyyy-MM-dd HH:mm:ss.SSS");
+        }catch (DateTimeParseException e){
+            log.warn("line '{}' in file has invalid date '{}'", line, params[0]);
+
+            return null;
+        }catch (IllegalArgumentException e){
+            log.warn("line '{}' in file has empty date '{}'", line, params[0]);
+
+            return null;
+        }
+
         al.setRequest(params[2]);
         al.setStatus(params[3]);
         al.setUserAgent(params[4]);
 
-        //  lets add this data MySQL table
-        if (this.isConnected){
-            //  MySQL is connected
-            HashMap<String, String> data = new HashMap<>();
-            data.put("table", Parser.MYSQL_ACCESSLOG_TABLE);
-            data.put("date", (new java.sql.Timestamp(al.getDate().getTime())).toString());
-            data.put("ip", al.getIp());
-            data.put("request", al.getRequest());
-            data.put("status", al.getStatus());
-            data.put("user_agent", al.getUserAgent());
+        ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
+        Validator validator = validatorFactory.getValidator();
 
-            int id = this.mysql.updateData(true, data);
-            if (id > 0){
-                //  keep MySQL id to use it later
-                al.setId(id);
-            }else{
-                System.err.println("MySQL error for line: '" + line + "'");
-            }
+        Set<ConstraintViolation<AccessLog>> constraintViolations = validator.validate(al);
+        if (constraintViolations.size() > 0){
+            log.warn("line '{}' has invalid data", line);
+            return null;
         }
 
+        entityManager.persist(ip);
 
         return al;
     };
@@ -110,73 +136,57 @@ public class AccessLogParser {
      *
      * @return List of suspicious IPs
      */
-    public List<String> banIps(Date startDate, CommandLine.DurationValues duration, int threshold){
-        List<String> ips = new ArrayList<>();
+    @SuppressWarnings("unchecked")
+    public Set<String> banIps(LocalDateTime startDate, CommandLineWrapper.DurationValues duration, int threshold){
+        if (startDate == null) throw new IllegalArgumentException("Start date parameter is invalid");
 
-        Date endDate = startDate;
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(startDate);
-        if (duration == CommandLine.DurationValues.hourly){
-            calendar.add(Calendar.HOUR, 1);
-            endDate = calendar.getTime();
-        }else if (duration == CommandLine.DurationValues.daily){
-            calendar.add(Calendar.DATE, 1);
-            endDate = calendar.getTime();
+        ChronoUnit chronoUnit;
+        if (duration == CommandLineWrapper.DurationValues.hourly){
+            chronoUnit = ChronoUnit.HOURS;
+        }else if (duration == CommandLineWrapper.DurationValues.daily){
+            chronoUnit = ChronoUnit.DAYS;
         }else{
             //  incorrect duration
-            return ips;
+            throw new IllegalArgumentException("Duration unit is invalid");
         }
 
-        //  keep ips freq usage in hash map
-        HashMap<String, Integer> ipsFrequency = new HashMap<>();
-        //  assume that accesslog's data is not sorted by date
-        //  we can sort using comparator but it makes no sense since it's going to use the same cycle
-        for (AccessLog al: this.data){
-            Date alDate = al.getDate();
-            if ( (alDate.compareTo(startDate) >= 0) && (alDate.compareTo(endDate) < 0) ){
-                //  alDate belongs to [startDate; endDate) interval
-                int ipFrequency = 0;
-                String ip = al.getIp();
-                if (ipsFrequency.get(ip) != null){
-                    ipFrequency = ipsFrequency.get(ip);
-                    ipFrequency++;
-                }
-                ipsFrequency.put(ip, ipFrequency);
-            }
-        }
+        if (threshold < 1) throw new IllegalArgumentException("Threshold is invalid");
 
-        //  filter ipsFrequency by threshold
-        Iterator<Integer> integerIterator = ipsFrequency.values().iterator();
-        while (integerIterator.hasNext()){
-            int freq = integerIterator.next();
+        LocalDateTime endDate = startDate.plus(1, chronoUnit);
 
-            if (freq < threshold){
-                integerIterator.remove();
-            }
-        }
+        entityManager.getTransaction().begin();
 
-        if (this.isConnected){
-            //  add ips to banned list
-            //  truncate table before adding to it
-            this.mysql.execSQL("truncate table `" + Parser.MYSQL_DATABASE + "`.`" + Parser.MYSQL_BANNEDIPS_TABLE + "`;");
+        //  get the list of banned ip
+        List<Object[]> ipList = entityManager.createQuery(
+                "select al.ip, count(*) as c from AccessLog as al " +
+                        "where (al.date >= :date1 and al.date < :date2) " +
+                        "group by al.ip having count(*) >= :threshold"
+        )
+                .setParameter("date1", startDate)
+                .setParameter("date2", endDate)
+                .setParameter("threshold", (long)threshold)
+                .getResultList();
 
-            HashMap<String, String> params = new HashMap<>();
+        //  truncate table before adding to it
+        entityManager.createQuery("delete BannedIp").executeUpdate();
 
-            Iterator<Map.Entry<String, Integer>> entryIterator = ipsFrequency.entrySet().iterator();
-            while (entryIterator.hasNext()){
-                Map.Entry<String, Integer> me = entryIterator.next();
+        Set<String> result = new HashSet<>();
+        //  add ips to banned list
+        ipList.forEach(objects -> {
+            String reason = "banned due to " + duration.name() + " requests more than " + threshold + " (actual: " + objects[1] + ")";
+            Ip ip = (Ip)objects[0];
+            BannedIp bannedIp = new BannedIp(ip, reason);
 
-                params.put("table", Parser.MYSQL_BANNEDIPS_TABLE);
-                params.put("ip", me.getKey());
-                params.put("reason", "banned due to " + duration.name() + " requests more than " + threshold + " (actual: " + me.getValue() + ")");
+            entityManager.persist(ip);
 
-                this.mysql.updateData(true, params);
-            }
-        }
+            result.add(ip.getIp());
+        });
 
 //        System.out.println(ipsFrequency);
 //        System.out.println(ipsFrequency.keySet());
 
-        return new ArrayList<String>(ipsFrequency.keySet());
+        entityManager.getTransaction().commit();
+
+        return result;
     }
 }
