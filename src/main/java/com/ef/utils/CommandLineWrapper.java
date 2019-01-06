@@ -128,6 +128,11 @@ public class CommandLineWrapper {
         this.threshold = parseThreshold(commandLine.getOptionValue(CLI_THRESHOLD_LONG));
     }
 
+    /**
+     * @throws IllegalArgumentException
+     * @param accessLog
+     * @return
+     */
     private String parseAccessLog(String accessLog) {
         File al = new File(accessLog);
 
@@ -141,8 +146,13 @@ public class CommandLineWrapper {
         return accessLog;
     }
 
+    /**
+     * @throws IllegalArgumentException
+     * @param startDate
+     * @return
+     */
     private LocalDateTime parseStartDate(String startDate) {
-        LocalDateTime date = LocalDateTime.now();
+        LocalDateTime date;
 
         try{
             date = LocalDateTime.parse(
@@ -160,6 +170,11 @@ public class CommandLineWrapper {
         return date;
     }
 
+    /**
+     * @throws IllegalArgumentException
+     * @param duration
+     * @return
+     */
     private DurationValues parseDuration(String duration) {
         if (!duration.equals(DurationValues.daily.name()) &&
                 !duration.equals(DurationValues.hourly.name())){
@@ -172,6 +187,11 @@ public class CommandLineWrapper {
         return DurationValues.valueOf(duration);
     }
 
+    /**
+     * @throws IllegalArgumentException
+     * @param threshold
+     * @return
+     */
     private int parseThreshold(String threshold) {
         boolean result = false;
         String message = "";
