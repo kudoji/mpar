@@ -1,5 +1,7 @@
 package com.ef.utils;
 
+import org.apache.commons.cli.*;
+
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -7,29 +9,77 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 
 public class CommandLine {
-    private String[] args;
+    private final char valueSeparator = '=';
+
+    private static final String CLI_ACCESSLOG_SHORT = "l";
+    private static final String CLI_ACCESSLOG_LONG = "accesslog";
+
+    private static final String CLI_STARTDATE_SHORT = "s";
+    private static final String CLI_STARTDATE_LONG = "startDate";
+
+    private static final String CLI_DURATION_SHORT = "d";
+    private static final String CLI_DURATION_LONG = "duration";
+
+    private static final String CLI_THRESHOLD_SHORT = "t";
+    private static final String CLI_THRESHOLD_LONG = "threshold";
+
+    private final String[] args;
+    private final Options options;
+
+
     private String accessLog;
     private DurationValues duration;
     private LocalDateTime startDate;
     private int threshold;
-    private HashMap<String, String> params;
-    private static final String CLI_ACCESSLOG = "accesslog";
-    private static final String CLI_STARTDATE = "startDate";
-    private static final String CLI_DURATION = "duration";
-    private static final String CLI_THRESHOLD = "threshold";
     public enum DurationValues{
         hourly,
         daily
     }
 
     public CommandLine(String[] args){
-        this.args = args;
+        this.options = new Options();
 
-        this.params = new HashMap<>();
-        this.params.put(CLI_ACCESSLOG, "");
-        this.params.put(CLI_STARTDATE, "");
-        this.params.put(CLI_DURATION, "");
-        this.params.put(CLI_THRESHOLD, "");
+        Option accesslog = new Option(
+                CLI_ACCESSLOG_SHORT,
+                CLI_ACCESSLOG_LONG,
+                true,
+                "path to web server access log file"
+        );
+        accesslog.setValueSeparator(valueSeparator);
+        accesslog.setRequired(true);
+        options.addOption(accesslog);
+
+        Option startDate = new Option(
+                CLI_STARTDATE_SHORT,
+                CLI_STARTDATE_LONG,
+                true,
+                "start date of 'yyyy-MM-dd.HH:mm:ss' format"
+        );
+        startDate.setValueSeparator(valueSeparator);
+        startDate.setRequired(true);
+        options.addOption(startDate);
+
+        Option duration = new Option(
+                CLI_DURATION_SHORT,
+                CLI_DURATION_LONG,
+                true,
+                "can take only 'hourly', 'daily' as inputs"
+        );
+        duration.setValueSeparator(valueSeparator);
+        duration.setRequired(true);
+        options.addOption(duration);
+
+        Option threshold = new Option(
+                CLI_THRESHOLD_SHORT,
+                CLI_THRESHOLD_LONG,
+                true,
+                "IP with more than specified amount hits will be banned"
+        );
+        threshold.setValueSeparator(valueSeparator);
+        duration.setRequired(true);
+        options.addOption(threshold);
+
+        this.args = args;
     }
 
     public String getAccessLog(){
@@ -53,7 +103,14 @@ public class CommandLine {
      *
      * @return
      */
-    public boolean parseCommands(){
+    public void parseCommands() throws ParseException {
+        CommandLineParser commandLineParser = new DefaultParser();
+        HelpFormatter helpFormatter = new HelpFormatter();
+        CommandLine commandLine;
+
+        commandLine = commandLineParser.parse(this.options, this.args);
+
+
         if (this.args.length != 4){
             System.out.println("4 parameters required.");
             System.out.println();
