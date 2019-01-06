@@ -22,7 +22,7 @@ public class Parser {
         System.out.println("parsing access log file, please wait...");
 
         EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory(
-                "mpar-production"
+                "mpar-test"
         );
         EntityManager entityManager = entityManagerFactory.createEntityManager();
 

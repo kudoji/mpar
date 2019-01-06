@@ -11,7 +11,7 @@
 
     <groupId>com.ef.parser</groupId>
     <artifactId>mpar</artifactId>
-    <version>0.1.3</version>
+    <version>0.1.5-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>parser</name>
