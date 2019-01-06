@@ -16,7 +16,7 @@
 
     <name>parser</name>
     <description>
-        mpar is MySQL parser tool in Java that parses web server access log file, loads the log to MySQL and checks if a given IP makes more than a certain number of requests for the given duration.
+        mpar is command line parser tool in Java that parses web server access log file, loads the log to MySQL and checks if a given IP makes more than a certain number of requests for the given duration.
     </description>
 
     <dependencies>
